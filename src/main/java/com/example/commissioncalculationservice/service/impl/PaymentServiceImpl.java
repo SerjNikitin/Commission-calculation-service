@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,12 +22,15 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Override
 	@Transactional
-	public PaymentDto createPayment(PaymentDto paymentDto) {
+	public Optional<PaymentDto> createPayment(PaymentDto paymentDto) {
 		Payment payment = mapperCalculation.toPayment(paymentDto);
-		BigDecimal commission = createCommission(payment.getSumPayment());
-		payment.setSumPayment(payment.getSumPayment().subtract(commission));
-		mapperCalculation.setCommission(payment, commission);
-		return mapperCalculation.toPaymentDto(paymentRepository.save(payment));
+		BigDecimal sumPayment = payment.getSumPayment();
+		if (sumPayment != null) {
+			BigDecimal commission = createCommission(sumPayment);
+			payment.setSumPayment(sumPayment.subtract(commission));
+			mapperCalculation.setCommission(payment, commission);
+			return Optional.of(mapperCalculation.toPaymentDto(paymentRepository.save(payment)));
+		} else return Optional.empty();
 	}
 
 	@Override
@@ -34,7 +38,10 @@ public class PaymentServiceImpl implements PaymentService {
 		return createCommission(sum);
 	}
 
-	private BigDecimal createCommission(BigDecimal sum) {
+	public BigDecimal createCommission(BigDecimal sum) {
+		if (sum.compareTo(BigDecimal.valueOf(0)) <= 0) {
+			throw new RuntimeException("Сумма должна быть больше 0");
+		}
 		BigDecimal tax = null;
 		if (sum.compareTo(BigDecimal.valueOf(10000)) <= 0 && sum.compareTo(BigDecimal.valueOf(0)) > 0) {
 			tax = sum.divide(BigDecimal.valueOf(100));
@@ -43,7 +50,6 @@ public class PaymentServiceImpl implements PaymentService {
 		} else if (sum.compareTo(BigDecimal.valueOf(100000)) >= 1) {
 			tax = sum.divide(BigDecimal.valueOf(100)).multiply(BigDecimal.valueOf(5));
 		}
-		assert false;
 		return tax.setScale(2, RoundingMode.DOWN);
 	}
 }
