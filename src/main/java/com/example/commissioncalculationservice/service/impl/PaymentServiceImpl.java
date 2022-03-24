@@ -38,11 +38,11 @@ public class PaymentServiceImpl implements PaymentService {
 		return createCommission(sum);
 	}
 
-	public BigDecimal createCommission(BigDecimal sum) {
+	private BigDecimal createCommission(BigDecimal sum) {
 		if (sum.compareTo(BigDecimal.valueOf(0)) <= 0) {
 			throw new RuntimeException("Сумма должна быть больше 0");
 		}
-		BigDecimal tax = null;
+		BigDecimal tax = BigDecimal.valueOf(0);
 		if (sum.compareTo(BigDecimal.valueOf(10000)) <= 0 && sum.compareTo(BigDecimal.valueOf(0)) > 0) {
 			tax = sum.divide(BigDecimal.valueOf(100));
 		} else if (sum.compareTo(BigDecimal.valueOf(100000)) <= 0 && sum.compareTo(BigDecimal.valueOf(10000)) > 0) {
